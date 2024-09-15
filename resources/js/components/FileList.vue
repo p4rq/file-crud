@@ -33,13 +33,13 @@
                 <tr v-for="file in files" :key="file.id">
                     <td>
                         <img
-                            :src="file.previewUrl ? file.previewUrl : '/no-photo.jpg'"
+                            :src="getImagePath(file)"
                             alt="File Image"
                             class="img-fluid"
-                            style="height: 40px; width: 40px; object-fit: cover;"
+                            style="height: 100px; width: 100px; object-fit: cover;"
                         />
                     </td>
-                    <td>{{ file.name || file.name }}</td>
+                    <td>{{ file.name }}</td>
                     <td>{{ file.category }}</td>
                     <td>{{ (file.size / 1024 / 1024).toFixed(2) }}</td>
                     <td>{{ file.path }}</td>
@@ -65,7 +65,8 @@
                     <li class="page-item" :class="{ disabled: currentPage === 1 }">
                         <button class="page-link" @click="prevPage">Previous</button>
                     </li>
-                    <li class="page-item" v-for="page in totalPages" :key="page" :class="{ active: page === currentPage }">
+                    <li class="page-item" v-for="page in totalPages" :key="page"
+                        :class="{ active: page === currentPage }">
                         <button class="page-link" @click="changePage(page)">{{ page }}</button>
                     </li>
                     <li class="page-item" :class="{ disabled: currentPage === totalPages }">
@@ -78,10 +79,10 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted} from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import swal from 'sweetalert'; // Importing the original SweetAlert
-import {useRouter} from 'vue-router';
+import { useRouter } from 'vue-router';
 
 const files = ref([]);
 const totalFiles = ref(0);
@@ -91,10 +92,21 @@ const searchQuery = ref('');
 
 const router = useRouter();
 
+// Function to get the image path
+const getImagePath = (file) => {
+    const fileExtensions = ['jpg', 'jpeg', 'png'];
+    const isImage = fileExtensions.includes(file.category.toLowerCase());
+
+    // Если файл является изображением, возвращаем путь как есть
+    // Если нет, возвращаем путь к заглушке
+    return isImage ? `/storage/${file.path}` : '/storage/no-image.jpg';
+};
+
+
 // Fetch files
 const fetchFiles = async () => {
     const response = await axios.get('/api/files', {
-        params: {page: currentPage.value, search: searchQuery.value},
+        params: { page: currentPage.value, search: searchQuery.value },
     });
     files.value = response.data.data; // Paginated data
     totalFiles.value = response.data.total; // Total number of files
@@ -108,7 +120,7 @@ const totalPages = computed(() => {
 const updateQuery = () => {
     router.push({
         path: '/',
-        query: {search: searchQuery.value},
+        query: { search: searchQuery.value },
     });
 
     fetchFiles(); // Re-fetch files with the updated search query

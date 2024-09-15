@@ -78,10 +78,31 @@ export default {
             }
         },
 
+        // Automatically determine the file category based on the MIME type
+        getFileCategory(file) {
+            const mimeType = file.type;
+
+            if (mimeType.startsWith('image/')) {
+                return 'Image';
+            } else if (mimeType === 'application/pdf') {
+                return 'PDF';
+            } else if (mimeType.startsWith('video/')) {
+                return 'Video';
+            } else if (mimeType.startsWith('audio/')) {
+                return 'Audio';
+            } else if (mimeType.startsWith('text/')) {
+                return 'Text';
+            } else {
+                return 'Document'; // Default category for other file types
+            }
+        },
+
         async uploadFile(file) {
             const formData = new FormData();
+            const fileCategory = this.getFileCategory(file); // Determine category
+
             formData.append('file', file);
-            formData.append('category', 'Documents'); // Set the category manually or dynamically
+            formData.append('category', fileCategory); // Automatically set the category
 
             try {
                 const response = await axios.post('/api/files', formData, {
@@ -109,7 +130,6 @@ export default {
         },
     },
 };
-
 </script>
 
 <style scoped>
