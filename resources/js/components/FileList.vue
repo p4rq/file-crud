@@ -95,7 +95,7 @@ const router = useRouter();
 // Function to get the image path
 const getImagePath = (file) => {
     // Определите, что такое изображение в вашем контексте
-    const imageCategories = ['Image', 'Photo', 'Picture']; // Добавьте сюда все категории, которые считаете изображениями
+    const imageCategories = ['Image']; // Добавьте сюда все категории, которые считаете изображениями
 
     // Проверьте, является ли категория изображения
     const isImage = imageCategories.includes(file.category);

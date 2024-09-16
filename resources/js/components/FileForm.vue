@@ -22,6 +22,17 @@
                         @update:modelValue="handleFileDetailsUpdate"
                         @file-validation-error="handleFileValidationError"
                     />
+
+                    <!-- Display existing file if in edit mode -->
+                    <div v-if="isEditMode && existingFileUrl" class="mt-4">
+                        <label>Existing File:</label>
+                        <div v-if="fileCategory === 'Image'">
+                            <img :src="existingFileUrl" alt="Existing File" class="img-fluid" />
+                        </div>
+                        <div v-else>
+                            <a :href="existingFileUrl" target="_blank">View Existing File</a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -46,6 +57,7 @@
         </div>
     </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -76,17 +88,19 @@ onMounted(() => {
     }
 });
 
+
 const loadFile = async (id) => {
     try {
         const response = await axios.get(`/api/files/${id}`);
         const fileData = response.data;
         fileName.value = fileData.name;
         fileCategory.value = fileData.category;
-        existingFileUrl.value = fileData.file_url;
+        existingFileUrl.value = fileData.path;
     } catch (error) {
         swal('Error!', 'Could not load file data', 'error');
     }
 };
+
 
 // Update file details when new file is selected
 const handleFileDetailsUpdate = (details) => {
