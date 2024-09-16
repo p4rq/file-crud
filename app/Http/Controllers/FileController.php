@@ -67,22 +67,36 @@ class FileController extends Controller
     {
         $file = File::findOrFail($id);
 
+        // Валидация входных данных
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'category' => 'required|string',
+            'file' => 'nullable|file|max:8192' // Ограничение на размер файла (8 MB)
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Обновление данных файла (название, категория)
         $file->update([
             'name' => $request->name ?? $file->name,
             'category' => $request->category,
         ]);
 
+        // Если был загружен новый файл, заменяем его
+        if ($request->hasFile('file')) {
+            // Удаляем старый файл, если нужно (проверьте путь к файлу)
+            Storage::delete($file->path);
+
+            // Загружаем новый файл и обновляем путь
+            $path = $request->file('file')->store('files');
+            $file->update(['path' => $path]);
+        }
+
         return response()->json($file, 200);
     }
+
 
     // Delete a file
     public function destroy($id)

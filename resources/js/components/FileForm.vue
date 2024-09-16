@@ -18,8 +18,8 @@
 
                     <!-- File upload field -->
                     <file-upload
-                        v-model="file"
-                        :existing-file-url="existingFileUrl"
+                        v-model="fileDetails"
+                        @update:modelValue="handleFileDetailsUpdate"
                         @file-validation-error="handleFileValidationError"
                     />
                 </div>
@@ -28,22 +28,10 @@
             <!-- Right side (Additional fields and actions) -->
             <div class="col-md-4">
                 <div class="card p-4 shadow-sm">
-                    <!-- File category -->
+                    <!-- Show file category (automatically set) -->
                     <div class="mb-3">
                         <label for="fileCategory" class="form-label">File Category</label>
-                        <select class="form-control" v-model="fileCategory">
-                            <option value="" disabled>Select category</option>
-                            <option v-for="category in categories" :key="category">{{ category }}</option>
-                        </select>
-                    </div>
-
-                    <!-- Upload progress -->
-                    <div v-if="uploadProgress !== null" class="progress mb-3">
-                        <div
-                            class="progress-bar progress-bar-striped progress-bar-animated"
-                            :style="{ width: uploadProgress + '%' }">
-                            {{ uploadProgress }}%
-                        </div>
+                        <p>{{ fileCategory }}</p>
                     </div>
 
                     <hr>
@@ -68,77 +56,55 @@ import FileNameInput from './FileNameInput.vue';
 import FileUpload from './FileUploadInput.vue';
 
 const fileName = ref('');
-const file = ref(null);
-const fileCategory = ref('');
+const fileDetails = ref({ file: null, category: '' });
+const fileCategory = ref(''); // Store category from child component
 const uploadProgress = ref(null);
 const isEditMode = ref(false);
 const fileId = ref(null);
-const existingFileUrl = ref(null); // Новый URL для существующего файла
-
-const categories = ['Documents', 'Images', 'Videos', 'Other'];
+const existingFileUrl = ref(null);
 
 const route = useRoute();
 const router = useRouter();
 
-// Check if we're in edit mode
 onMounted(() => {
     if (route.params.id) {
         isEditMode.value = true;
         fileId.value = route.params.id;
-        loadFile(fileId.value); // Load the file details for editing
+        loadFile(fileId.value);
     } else {
         isEditMode.value = false;
     }
 });
 
-// Load file details for editing
 const loadFile = async (id) => {
     try {
         const response = await axios.get(`/api/files/${id}`);
         const fileData = response.data;
         fileName.value = fileData.name;
         fileCategory.value = fileData.category;
-        existingFileUrl.value = fileData.file_url; // Загрузка существующего файла
+        existingFileUrl.value = fileData.file_url;
     } catch (error) {
         swal('Error!', 'Could not load file data', 'error');
     }
 };
 
-// Open modal with swal for confirmation
-const openConfirmation = (type) => {
-    swal({
-        title: type === 'save' ? 'Save File?' : 'Delete File?',
-        text: type === 'save' ? 'Are you sure you want to save this file?' : 'Are you sure you want to delete this file?',
-        icon: type === 'save' ? 'info' : 'warning',
-        buttons: true,
-        dangerMode: type === 'delete',
-    }).then((willProceed) => {
-        if (willProceed) {
-            if (type === 'save') {
-                handleSave();
-            } else if (type === 'delete') {
-                deleteFile();
-            }
-        }
-    });
+// Update file details when new file is selected
+const handleFileDetailsUpdate = (details) => {
+    fileDetails.value = details;
+    fileCategory.value = details.category; // Automatically update category
 };
 
 // Save or update file
 const handleSave = () => {
-    if (!file.value && !existingFileUrl.value) {
+    if (!fileDetails.value.file && !existingFileUrl.value) {
         handleFileValidationError('File is required');
         return;
     }
 
-    if (!fileCategory.value) {
-        handleFileValidationError('Category is required');
-        return;
-    }
-
     const formData = new FormData();
-    formData.append('name', fileName.value || (file.value ? file.value.name : '')); // File name is optional
-    if (file.value) {
-        formData.append('file', file.value);
+    formData.append('name', fileName.value || (fileDetails.value.file ? fileDetails.value.file.name : ''));
+    if (fileDetails.value.file) {
+        formData.append('file', fileDetails.value.file);
     }
     formData.append('category', fileCategory.value);
 
@@ -156,7 +122,7 @@ const handleSave = () => {
     })
         .then(() => {
             swal('Success!', 'File saved successfully', 'success');
-            router.push('/'); // Redirect after saving
+            router.push('/');
         })
         .catch((error) => {
             swal('Error!', 'There was an error saving the file', 'error');
@@ -168,14 +134,32 @@ const deleteFile = () => {
     axios.delete(`/api/files/${fileId.value}`)
         .then(() => {
             swal('Deleted!', 'File deleted successfully', 'success');
-            router.push('/'); // Redirect after deletion
+            router.push('/');
         })
         .catch(() => {
             swal('Error!', 'There was an error deleting the file', 'error');
         });
 };
 
-// Handle file validation error
+// Handle save or delete confirmation
+const openConfirmation = (action) => {
+    swal({
+        title: `Are you sure you want to ${action} this file?`,
+        icon: 'warning',
+        buttons: true,
+        dangerMode: true,
+    }).then((willAct) => {
+        if (willAct) {
+            if (action === 'save') {
+                handleSave();
+            } else if (action === 'delete') {
+                deleteFile();
+            }
+        }
+    });
+};
+
+// Handle file validation errors
 const handleFileValidationError = (error) => {
     swal('Error!', error, 'error');
 };

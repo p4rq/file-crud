@@ -1,22 +1,28 @@
 <template>
     <div class="mb-3">
         <label for="file" class="form-label">Upload File</label>
-        <div
-            class="drag-drop-area"
-            @dragover.prevent
-            @drop.prevent="handleDrop"
-        >
+        <!-- Conditional rendering: show existing file info if available -->
+        <div v-if="existingFileUrl" class="mb-2">
+            <p>Current File:
+                <a :href="existingFileUrl" target="_blank">{{ existingFileName }}</a>
+            </p>
+            <!-- Display a preview if the file is an image -->
+            <img v-if="isImage(existingFileUrl)" :src="existingFileUrl" alt="Image Preview" class="img-thumbnail" style="max-width: 200px;">
+        </div>
+
+        <!-- File input for uploading a new file -->
+        <div class="drag-drop-area" v-if="!existingFileUrl || allowReplaceFile" @dragover.prevent @drop.prevent="handleDrop">
             <input
                 type="file"
                 class="form-control"
                 id="file"
                 ref="fileInput"
                 @change="handleFileChange"
-                required
             />
             <p v-if="fileName">{{ fileName }}</p>
             <p v-if="fileError" class="text-danger">{{ fileError }}</p>
         </div>
+
         <!-- Progress Bar -->
         <div v-if="uploadProgress > 0" class="progress mt-3">
             <div
@@ -34,11 +40,15 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
     props: {
         modelValue: File, // Prop for v-model to bind file data
+        existingFileUrl: String, // URL of the existing file
+        existingFileName: String, // Name of the existing file
+        allowReplaceFile: {
+            type: Boolean,
+            default: true, // Allow replacing the existing file
+        }
     },
     data() {
         return {
@@ -48,7 +58,6 @@ export default {
         };
     },
     methods: {
-        // Check if the file size is less than 8MB (8 * 1024 * 1024 bytes)
         validateFileSize(file) {
             const MAX_SIZE_MB = 8 * 1024 * 1024; // 8 MB in bytes
             if (file.size > MAX_SIZE_MB) {
@@ -63,8 +72,8 @@ export default {
             const file = event.target.files[0];
             if (file && this.validateFileSize(file)) {
                 this.fileName = file.name;
-                this.$emit('update:modelValue', file); // Emit file to parent
-                this.uploadFile(file); // Start file upload when file is selected
+                const category = this.getFileCategory(file);
+                this.$emit('update:modelValue', { file, category }); // Emit file and category to parent
             }
         },
 
@@ -72,13 +81,12 @@ export default {
             const file = event.dataTransfer.files[0];
             if (file && this.validateFileSize(file)) {
                 this.fileName = file.name;
+                const category = this.getFileCategory(file);
                 this.$refs.fileInput.files = event.dataTransfer.files;
-                this.$emit('update:modelValue', file); // Emit file to parent
-                this.uploadFile(file); // Start file upload when file is dropped
+                this.$emit('update:modelValue', { file, category }); // Emit file and category to parent
             }
         },
 
-        // Automatically determine the file category based on the MIME type
         getFileCategory(file) {
             const mimeType = file.type;
 
@@ -97,36 +105,8 @@ export default {
             }
         },
 
-        async uploadFile(file) {
-            const formData = new FormData();
-            const fileCategory = this.getFileCategory(file); // Determine category
-
-            formData.append('file', file);
-            formData.append('category', fileCategory); // Automatically set the category
-
-            try {
-                const response = await axios.post('/api/files', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                    onUploadProgress: (progressEvent) => {
-                        if (progressEvent.lengthComputable) {
-                            this.uploadProgress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-                        }
-                    },
-                });
-
-                if (response.status === 201) {
-                    console.log('File uploaded successfully', response.data);
-                    // Handle success, e.g., reset the file input or redirect
-                }
-            } catch (error) {
-                console.error('Upload failed', error.response.data);
-                if (error.response.status === 422) {
-                    this.fileError = error.response.data.errors.file || 'Invalid file upload';
-                }
-                this.uploadProgress = 0; // Reset progress bar on error
-            }
+        isImage(url) {
+            return /\.(jpeg|jpg|gif|png|webp|bmp)$/i.test(url); // Check if the URL is an image
         },
     },
 };
@@ -142,5 +122,9 @@ export default {
 
 .progress {
     height: 25px;
+}
+
+.img-thumbnail {
+    margin-top: 10px;
 }
 </style>

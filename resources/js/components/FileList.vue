@@ -44,7 +44,7 @@
                     <td>{{ (file.size / 1024 / 1024).toFixed(2) }}</td>
                     <td>{{ file.path }}</td>
                     <td>
-                        <a :href="file.path" class="btn btn-primary btn-sm me-1" download>Download</a>
+                        <a :href="'/storage/' + file.path" class="btn btn-primary btn-sm me-1" download>Download</a>
                         <button class="btn btn-success btn-sm me-1" @click="editFile(file.id)">
                             <i class="fas fa-pencil-alt"></i>
                         </button>
