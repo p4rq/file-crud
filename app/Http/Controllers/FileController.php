@@ -42,8 +42,13 @@ class FileController extends Controller
     {
         $file = File::findOrFail($id);
 
-        return response()->json($file, 200);
+        return response()->json([
+            'name' => $file->name,
+            'category' => $file->category,
+            'path' => Storage::url($file->path), // Возвращаем публичный URL файла
+        ]);
     }
+
 
     // List all files with pagination and optional search
     public function index(Request $request)
