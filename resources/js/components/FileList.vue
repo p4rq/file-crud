@@ -94,13 +94,17 @@ const router = useRouter();
 
 // Function to get the image path
 const getImagePath = (file) => {
-    const fileExtensions = ['jpg', 'jpeg', 'png'];
-    const isImage = fileExtensions.includes(file.category.toLowerCase());
+    // Определите, что такое изображение в вашем контексте
+    const imageCategories = ['Image', 'Photo', 'Picture']; // Добавьте сюда все категории, которые считаете изображениями
 
-    // Если файл является изображением, возвращаем путь как есть
-    // Если нет, возвращаем путь к заглушке
+    // Проверьте, является ли категория изображения
+    const isImage = imageCategories.includes(file.category);
+
+    // Возвращаем путь в зависимости от проверки
     return isImage ? `/storage/${file.path}` : '/storage/no-image.jpg';
 };
+
+
 
 
 // Fetch files
